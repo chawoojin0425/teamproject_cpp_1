@@ -1,0 +1,126 @@
+
+#include "raylib.h"
+#include <stdlib.h>
+
+const int TILE_SIZE = 40;
+const int MAP_W = 20, MAP_H = 15;
+
+int map[MAP_H][MAP_W] = {
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+    {1,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,1},
+    {1,2,1,1,2,1,2,1,1,2,1,2,1,1,2,1,2,1,2,1},
+    {1,2,1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,2,1},
+    {1,2,1,1,1,1,2,1,1,1,1,1,1,2,1,1,2,1,2,1},
+    {1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1},
+    {1,2,1,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,2,1},
+    {1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1},
+    {1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1},
+    {1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,1},
+    {1,2,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,2,1},
+    {1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1},
+    {1,2,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1},
+    {1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1},
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+};
+
+Vector2 pac = { 1, 1 };
+Vector2 ghost = { 10, 7 };
+int score = 0;
+bool gameOver = false;
+bool gameWin = false;
+
+Vector2 GetGhostMove(Vector2 ghost) {
+    Vector2 directions[4] = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+    Vector2 validMoves[4];
+    int count = 0;
+
+    for (int i = 0; i < 4; i++) {
+        int nx = (int)ghost.x + (int)directions[i].x;
+        int ny = (int)ghost.y + (int)directions[i].y;
+        if (nx >= 0 && ny >= 0 && nx < MAP_W && ny < MAP_H && map[ny][nx] != 1) {
+            validMoves[count++] = directions[i];
+        }
+    }
+
+    if (count > 0) {
+        int choice = rand() % count;
+        return validMoves[choice];
+    }
+
+    return { 0, 0 };
+}
+
+bool CanMove(int x, int y) {
+    return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H && map[y][x] != 1;
+}
+
+bool AllDotsEaten() {
+    for (int j = 0; j < MAP_H; j++) {
+        for (int i = 0; i < MAP_W; i++) {
+            if (map[j][i] == 2) return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    InitWindow(MAP_W * TILE_SIZE, MAP_H * TILE_SIZE, "Pac-Man Mini + Ghost (WHITE) + Win Check");
+    SetTargetFPS(15);
+
+    while (!WindowShouldClose()) {
+        if (!gameOver && !gameWin) {
+            int x = (int)pac.x, y = (int)pac.y;
+
+            if (IsKeyDown(KEY_RIGHT) && CanMove(x + 1, y)) pac.x++;
+            if (IsKeyDown(KEY_LEFT) && CanMove(x - 1, y)) pac.x--;
+            if (IsKeyDown(KEY_UP) && CanMove(x, y - 1)) pac.y--;
+            if (IsKeyDown(KEY_DOWN) && CanMove(x, y + 1)) pac.y++;
+
+            if (map[(int)pac.y][(int)pac.x] == 2) {
+                map[(int)pac.y][(int)pac.x] = 0;
+                score += 10;
+            }
+
+            Vector2 move = GetGhostMove(ghost);
+            ghost.x += move.x;
+            ghost.y += move.y;
+
+            if ((int)pac.x == (int)ghost.x && (int)pac.y == (int)ghost.y) {
+                gameOver = true;
+            }
+
+            if (AllDotsEaten()) {
+                gameWin = true;
+            }
+        }
+
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        for (int j = 0; j < MAP_H; j++) {
+            for (int i = 0; i < MAP_W; i++) {
+                if (map[j][i] == 1)
+                    DrawRectangle(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLUE);
+                else if (map[j][i] == 2)
+                    DrawCircle(i * TILE_SIZE + 20, j * TILE_SIZE + 20, 5, YELLOW);
+            }
+        }
+
+        DrawCircle(ghost.x * TILE_SIZE + 20, ghost.y * TILE_SIZE + 20, 16, WHITE); // 유령 색상: WHITE
+        DrawCircle(pac.x * TILE_SIZE + 20, pac.y * TILE_SIZE + 20, 16, GOLD);
+
+        DrawText(TextFormat("Score: %d", score), 10, 10, 20, WHITE);
+
+        if (gameOver)
+            DrawText("GAME OVER!", GetScreenWidth() / 2 - 80, GetScreenHeight() / 2, 30, RED);
+        else if (gameWin)
+            DrawText("YOU WIN!", GetScreenWidth() / 2 - 70, GetScreenHeight() / 2, 30, GREEN);
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+    return 0;
+}
+
+
